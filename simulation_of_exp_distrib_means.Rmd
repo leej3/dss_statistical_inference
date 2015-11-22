@@ -1,0 +1,117 @@
+---
+title: "Exploring the exponential distribution using simulations"
+author: "John Lee"
+date: "21 November 2015"
+output: pdf_document
+---
+```{r load libraries and initialise vars, echo = FALSE, warning=FALSE, results = 'hide'}
+library(ggplot2)
+samples_from_exp_dist <- rexp(10000, rate = 0.2)
+
+```
+
+### Overview
+The exponential distribution is the probability distribution that describes the time between events in a Poisson process, a process in which events occur continuously and independently at a constant average rate. This report explores the properties of samples of this distribution. Running 1000 simulations, sampling 40 times each simulation we explore the behavior of the means of these samples.
+
+### Introduction
+A histogram  of 10,000 samples from the exponential distribution (with a rate parameter of 0.2, which will be used for the remainder of the report) provides insight into the shape of this probability distribution. The rate parameter of the distribution, often denoted by the greek letter $\lambda$, can be used to calculate, among other properties of the distribution, the mean (1/$\lambda$), the variance (1/$\lambda ^2$) and the median (ln(2)/$\lambda$). The mean of the samples in Supplimentary Figure 1 (shown in blue) is `r round(mean(samples_from_exp_dist),2)`, very close to the population mean of 5. This accuracy is expected as 10000 samples of the distribution were taken. If instead we sample only 40 times, our estimate of the true population mean becomes more variable. This report describes the distribution of the means of such randomly sampled sets of 40 numbers from the exponential distribution.
+
+
+## The properties of the distribution of the mean of 40 exponentials.
+1000 simulations were run sampling 40 times from the exponential distribution each time. This was performed by using the 'rexp' function in R: 
+
+```{r mean of sampling simlulations}
+num_sims <- 10000
+n <- 40
+rate_var <- 0.2
+set.seed(10)
+vals <- matrix(rexp(num_sims * n, rate = rate_var),num_sims)
+averages <-  apply(vals, 1, mean)
+```
+
+### 1. Show the sample mean and compare it to the theoretical mean of the distribution.
+The distribution of the mean of 40 exponentials is depicts in Figure 1. The mean of this distribution (depicted by the blue line) is `r round(mean(averages),2)`, close to the true mean of 5 of the original exponential distribution (calculated as 1/$\lambda$). Figure 1 shows that the distribution of these means no longer approximates the original sampled distribution but instead appears more like a normal distribution (see subsection 3).
+
+```{r histogram of means, echo = FALSE, warning=FALSE}
+ggplot(data.frame(averages = averages), aes(x = averages))+
+     geom_histogram(alpha= 0.2,
+                 bins = 50,
+                 col = "black",
+                 fill="red",
+                 alpha = 0.2)+
+     geom_vline(xintercept = mean(averages),col = "blue", size = 2)+
+     ggtitle("Fig. 1: The distribution of means of samples from the exponential distribution")+
+xlab("Means of 40 samples")+ 
+    ylab("Count")
+```
+
+
+
+
+### 2. Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution.
+The theoretical variance of a population of sample means is $\sigma^2$/n, which in the case of sampling from the exponential distribution becomes 1/($\lambda^2$ x n). With a rate of 0.2 and with 40 samples used for each mean we would expect the variance to be `r 1/(rate_var^2*40)` :
+
+```{r theoretical variance}
+theoretical_variance_of_means <- 1/ (0.2^2 * 40)
+```
+
+This is similar to the variance of `r round(var(averages),2)` calculated from the 1000 sample means generated from the simulations:
+
+```{r sample variance}
+variance_of_simulated_means <- var(averages)
+```
+
+
+### 3. Show that the distribution is approximately normal.
+As mentioned before the distribution of sample means appears normal. In Figure 2a, the histogram of the means are once again plotted but this time standardised and normalised. A smooth density estimate using the ggplot2 plotting library estimates the probability density function of the sample means (depicted as a red line). Additionally a gaussian curve is superimposed on the plot (black) to observe the similarity. In Figure 3, a normal Q-Q plot also shows the normality of this distribution. It can be seen that some deviations exist in the tails but overall we can observe the central limit theorem in action. The distribution of samples from the exponential distribution (see Supplimentary Figure 1) is no longer observed when the means of a number of samples are assessed. With a sufficient number of samples, in this case 40, the distribution of the means can be described by a normal distribution instead of the original distribution used for sampling.
+
+
+
+```{r normality, echo=FALSE}
+num_sims <- 1000
+n <- 40
+rate_var <- 0.2
+vals <- matrix(rexp(num_sims * n, rate = rate_var),num_sims)
+cfunc <- function(x, n) rate_var*sqrt(n) * (mean(x) - rate_var^-1)
+data <- data.frame(averages = apply(vals, 1, cfunc, n))
+ ggplot(data, aes(x = averages))+
+     geom_histogram(alpha= 0.1, binwidth=0.3, aes(y = ..density..), fill = "black")+
+    stat_function(fun = dnorm, size = 2) +
+    geom_density(stat = "density",col = "red", size = 2) +
+    theme(legend.position="none") + 
+     ggtitle("Fig. 2: Sample means exhibit a gaussian distribution")+
+     xlab("Standardised distribution of sample means")+
+     ylab("Density")
+ 
+
+ qqnorm(averages,main = "Fig. 3 : Normal Q-Q plot of means"); qqline(averages)
+# g + facet_grid(. ~ size)
+```
+
+```{r sample means, eval=FALSE, echo = FALSE}
+num_sims <- 10000
+num_samples <- 40
+means_of_samples <- apply(matrix(rexp(num_sims * num_samples, rate = 0.2), num_sims), 1, mean, num_samples)
+qplot(means_of_samples, bins = 100,
+      col = "red", 
+      main = "The means of 40 samples from the exponential distribution")  +
+    geom_vline(xintercept = mean(means_of_samples), col = "blue", size = 2)+
+    theme(legend.position="none")
+
+qplot(1:num_sims, cumsum(means_of_samples)/1:num_sims, geom = "line")
+```
+
+# Appendix
+
+```{r supp exponential distribution, echo=FALSE}
+samples_from_exp_dist <- rexp(10000, rate = 0.2)
+qplot(samples_from_exp_dist, bins = 100,
+      col = "red", 
+      main = "Sampling from the exponential distribution")  +
+    geom_vline(xintercept = mean(samples_from_exp_dist), col = "blue", size = 2)+
+    theme(legend.position="none") + 
+    xlab("Samples from the exponential distribution")+
+    ylab("Count")
+
+```
+
