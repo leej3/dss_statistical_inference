@@ -1,0 +1,65 @@
+---
+title: "A basic use of statistical inference"
+author: "John Lee"
+date: "22 November 2015"
+output: pdf_document
+bibliography: /Users/johnlee/Documents/Papers2/journal_articles.bib
+---
+## Overview
+This report (written using knitr) demonstrates knowledge of basic statistical inference through the use of the t-test to compare treatment groups in the ToothGrowth dataset in the R computing environment.
+
+
+```{r, echo=FALSE, warning=FALSE}
+library(ggplot2, quietly= TRUE, warn.conflicts = FALSE)
+library(dplyr,quietly= TRUE, warn.conflicts = FALSE)
+data(ToothGrowth)
+```
+## Results
+A quick exploration of the ToothGrowth dataset reveals the three variables len, supp and dose to be a continuous variable, a factor with two levels, and a factor with 3 levels respectively:
+
+```{r data description}
+summary(ToothGrowth$len)
+summary(ToothGrowth$supp)
+unique(ToothGrowth$dose)
+ToothGrowth <- mutate(ToothGrowth, dose= factor(paste(dose , "mg")))
+```
+
+The help file for this dataset informs us that the supp variable refers to the delivery method of Vitamin C. It is either orange juice (OJ) or ascorbic acid (VC). The dose variable is in units of milligrams. The length is of odontoblasts and is reported in microns  [@CRAMPTON:1947um]. A plot of these factor level combinations and their effect on the  resulting length of the odontoblast growth is depicted in Figure 1. 
+
+It would appear that the delivery method (supp)  does not have a substantial effect on tooth growth whereas the dose of Vitamin C does. To assess this using a more formal statistical analysis we will use t-tests discussed in this lecture series to test the effect of the dose and supp variables. Using this testing method makes a number of assumptions and may have some problems. 
+
+These assumptions and problems include an assumption about the underlying distribution of the data and an assumption that there is no interaction between the two factors. The t-test assumes that the data is drawn from a normal distribution, an assumption that does not appear to be badly violated by the different groups (as assessed by the violin plot in Figure 1). An interaction between the two factors would confound our results. An interaction is not obvious from looking at Figure 1. When we make multiple comparisons between groups like this we increase the probability of obtaining a false positive (Type I error) but we will ignore that for the purposes of this report. 
+
+Also  : forgot about assumptions regarding variance.
+
+```{r}
+ggplot(ToothGrowth, aes(supp, len, fill = supp,colour = supp)) + 
+    geom_violin() + facet_grid(. ~ dose)+
+    ggtitle("Fig. 1: The effect on suppliment type and dose on tooth growth")+
+    xlab("Suppliment type")+
+    ylab("Odontoblast growth (microns)")
+```
+
+A test for whether the method of delivery has an effect on odontoblast growth is reported below. The 95% confidence interval overlaps with zero indicating that we cannot reject the null hypothesis that the delivery method of Vitamin C has no effect on tooth growth.
+```{r}
+    t.test(data = ToothGrowth, len ~ supp)
+```
+
+To assess the effect of Vitamin C dose we will test whether a difference in tooth growth is observed between the lowest and highest dose levels:
+
+```{r}
+dose_subset <-   filter(ToothGrowth, dose %in% c("0.5 mg", "2 mg"))
+t.test(data = dose_subset, len ~ dose)    
+
+```
+
+This test indicates a significant difference between the two dose levels. The 95% confidence interval does not overlap with zero and indicates that with 2 mg supplimentation of Vitamin C vs. 0.5 mg supplimentation that guinea pig odontoblasts will grow an extra 12.8 to 18.1 microns.
+
+## Nice alternative summary method
+```{r}
+ToothGrowth %>%
+group_by(supp,dose) %>%
+summarise(mean(len),sd(len),min(len),max(len))
+```
+
+# Bibliography
